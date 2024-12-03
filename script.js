@@ -208,59 +208,18 @@ END:VCARD`;
 
     shareQRCode() {
         const qrImage = this.qrcodeDiv.querySelector('img');
-        if (!qrImage) {
-            alert('Please generate a QR code first');
-            return;
-        }
-
-        // For mobile sharing, we need to convert the base64 image to a proper file
-        const base64Data = qrImage.src;
-        
-        // If it's a base64 image, convert it properly
-        if (base64Data.startsWith('data:image/png;base64,')) {
-            const byteString = atob(base64Data.split(',')[1]);
-            const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            
-            for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-            }
-            
-            const blob = new Blob([ab], { type: mimeString });
-            const file = new File([blob], 'qrcode.png', { type: 'image/png' });
-
-            // Try sharing with files first
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    files: [file],
-                    title: 'QR Code',
-                    text: 'Check out this QR code!'
-                }).catch(error => {
-                    console.error('Error sharing file:', error);
-                    // Fallback to sharing without file
-                    this.shareWithoutFile();
+        if (qrImage && navigator.share) {
+            fetch(qrImage.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+                    navigator.share({
+                        files: [file],
+                        title: 'QR Code',
+                        text: 'Check out this QR code!'
+                    }).catch(console.error);
                 });
-            } else {
-                // If file sharing is not supported, try without file
-                this.shareWithoutFile();
-            }
-        } else {
-            // If it's not a base64 image, try sharing without file
-            this.shareWithoutFile();
         }
-    }
-
-    shareWithoutFile() {
-        navigator.share({
-            title: 'QR Code',
-            text: 'Check out this QR code!',
-            url: window.location.href
-        }).catch(error => {
-            console.error('Error sharing:', error);
-            alert('Unable to share. Please try downloading the QR code instead.');
-            this.downloadQRCode();
-        });
     }
 
     addToHistory(item) {
