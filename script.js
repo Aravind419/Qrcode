@@ -669,7 +669,7 @@ END:VCARD`;
         this.cameraBtn.className = 'camera-btn';
         this.cameraBtn.innerHTML = '<i class="fas fa-camera"></i>';
         this.cameraBtn.onclick = () => this.openCameraScanner();
-        navButtons.appendChild(this.cameraBtn);
+        navButtons.insertBefore(this.cameraBtn, navButtons.firstChild);
 
         // Create scanner modal
         this.scannerModal = document.createElement('div');
@@ -740,48 +740,38 @@ END:VCARD`;
     }
 
     async handleScanResult(result) {
-        this.closeCameraScanner();
-        
-        // Check if result is URL
         try {
-            const url = new URL(result);
-            if (url.protocol === 'http:' || url.protocol === 'https:') {
-                // Show confirmation modal before redirect
-                if (confirm(`Open this URL?\n${result}`)) {
-                    window.open(result, '_blank');
+            // Stop scanning
+            this.qrScanner.stop();
+            
+            // Parse the result
+            let decodedText = result.data || result;
+            
+            // Check if it's a URL
+            if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
+                const confirmed = confirm(`Open this URL?\n${decodedText}`);
+                if (confirmed) {
+                    window.open(decodedText, '_blank');
                 }
-                return;
+            } else if (decodedText.startsWith('mailto:')) {
+                window.location.href = decodedText;
+            } else if (decodedText.startsWith('tel:')) {
+                window.location.href = decodedText;
+            } else if (decodedText.startsWith('WIFI:')) {
+                alert('WiFi Network Details:\n' + decodedText.replace(/[;:]/g, '\n'));
+            } else {
+                // For other types of QR codes, show the content
+                alert('Scanned Content:\n' + decodedText);
             }
-        } catch (e) {
-            // Not a URL, continue with normal handling
-        }
 
-        // Handle other types of QR codes
-        this.showToast('QR Code scanned: ' + result);
-        
-        // Try to determine the QR type and populate form
-        this.handleScannedContent(result);
-    }
-
-    handleScannedContent(content) {
-        // Detect content type and populate appropriate form
-        if (content.startsWith('mailto:')) {
-            this.changeQRType('email');
-            // Parse email content and populate fields
-            const email = content.replace('mailto:', '').split('?')[0];
-            document.getElementById('emailTo').value = email;
-        } else if (content.startsWith('tel:')) {
-            this.changeQRType('phone');
-            const phone = content.replace('tel:', '');
-            document.getElementById('phoneNumber').value = phone;
-        } else if (content.startsWith('WIFI:')) {
-            this.changeQRType('wifi');
-            // Parse WiFi content and populate fields
-            // ... add WiFi parsing logic
-        } else {
-            // Default to URL type
-            this.changeQRType('url');
-            document.getElementById('urlInput').value = content;
+            // Close scanner modal
+            this.closeCameraScanner();
+            
+            // Show success message
+            this.showToast('QR Code scanned successfully!');
+        } catch (error) {
+            console.error('Scan handling failed:', error);
+            this.showToast('Failed to process QR code');
         }
     }
 }
