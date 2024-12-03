@@ -379,3 +379,28 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.qr-code-container img {
+    max-width: 100%;
+    height: auto;
+    touch-action: manipulation;
+    -webkit-touch-callout: default; /* Enable save image on iOS */
+    -webkit-user-select: none; /* Disable text selection */
+    user-select: none;
+}
+
+/* Add mobile-specific instructions */
+.qr-code-container::after {
+    content: 'Tap QR code to save';
+    display: none;
+    text-align: center;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+    .qr-code-container::after {
+        display: block;
+    }
+}

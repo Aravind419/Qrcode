@@ -175,9 +175,75 @@ END:VCARD`;
             correctLevel: QRCode.CorrectLevel.H
         });
 
+        // Add click-to-save functionality for mobile
+        const qrImage = this.qrcodeDiv.querySelector('img');
+        if (qrImage) {
+            qrImage.style.cursor = 'pointer';
+            qrImage.title = 'Tap to save QR Code';
+            qrImage.addEventListener('click', () => this.handleQRCodeClick(qrImage));
+        }
+
         // Show buttons after generation
         this.downloadBtn.classList.remove('hidden');
         this.shareBtn.classList.remove('hidden');
+    }
+
+    async handleQRCodeClick(qrImage) {
+        // Check if it's a mobile device
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            try {
+                // Create a canvas with white background
+                const canvas = document.createElement('canvas');
+                canvas.width = qrImage.width + 40; // Add padding
+                canvas.height = qrImage.height + 40;
+                const ctx = canvas.getContext('2d');
+
+                // Fill white background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw QR code in the center
+                ctx.drawImage(qrImage, 20, 20, qrImage.width, qrImage.height);
+
+                // Convert to blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                
+                // Try saving using different methods
+                if ('showSaveFilePicker' in window) {
+                    // Use File System Access API
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: this.generateFileName(),
+                            types: [{
+                                description: 'PNG Image',
+                                accept: {'image/png': ['.png']},
+                            }],
+                        });
+                        const writable = await handle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        this.showToast('QR code saved successfully!');
+                        return;
+                    } catch (e) {
+                        console.log('File System Access API failed, trying alternative method');
+                    }
+                }
+
+                // Fallback method
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.generateFileName();
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast('Tap and hold the QR code to save');
+            } catch (error) {
+                console.error('Save failed:', error);
+                this.showToast('Could not save QR code. Please try the download button.');
+            }
+        }
     }
 
     async downloadQRCode() {
