@@ -1,11 +1,62 @@
 class QRCodeGenerator {
     constructor() {
+        // Check for desktop mode first
+        if (!this.isDesktopMode()) {
+            this.showDesktopModePrompt();
+            return;
+        }
+
         this.initializeElements();
         this.setupEventListeners();
         this.loadThemePreference();
         this.loadHistory();
         this.currentType = 'url';
         this.setupQRTypes();
+    }
+
+    isDesktopMode() {
+        // Check if the device is mobile and not in desktop mode
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const viewportWidth = window.innerWidth;
+        const isDesktopMode = viewportWidth >= 1024; // Common desktop breakpoint
+
+        return !isMobile || isDesktopMode;
+    }
+
+    showDesktopModePrompt() {
+        // Create and show the desktop mode prompt
+        const overlay = document.createElement('div');
+        overlay.className = 'desktop-mode-overlay';
+        
+        const content = document.createElement('div');
+        content.className = 'desktop-mode-content';
+        
+        content.innerHTML = `
+            <div class="desktop-mode-icon">
+                <i class="fas fa-desktop"></i>
+            </div>
+            <h2>Desktop Mode Required</h2>
+            <p>Please switch to desktop mode in your browser settings to use this website.</p>
+            <div class="instructions">
+                <h3>How to enable desktop mode:</h3>
+                <div class="browser-instructions">
+                    <h4>Chrome:</h4>
+                    <ol>
+                        <li>Click the three dots (⋮)</li>
+                        <li>Check "Desktop site"</li>
+                    </ol>
+                    <h4>Safari:</h4>
+                    <ol>
+                        <li>Tap "aA" in the address bar</li>
+                        <li>Select "Request Desktop Website"</li>
+                    </ol>
+                </div>
+            </div>
+        `;
+
+        overlay.appendChild(content);
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
 
     initializeElements() {

@@ -424,3 +424,83 @@ body {
         display: block;
     }
 }
+
+.desktop-mode-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--background-color);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.desktop-mode-content {
+    background-color: var(--card-background);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px var(--shadow-color);
+    max-width: 90%;
+    width: 400px;
+    text-align: center;
+}
+
+.desktop-mode-icon {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.desktop-mode-content h2 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.desktop-mode-content p {
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.instructions {
+    text-align: left;
+    padding: 1rem;
+    background: var(--background-color);
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.instructions h3 {
+    color: var(--text-color);
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.browser-instructions {
+    color: var(--text-color);
+}
+
+.browser-instructions h4 {
+    color: var(--primary-color);
+    margin: 1rem 0 0.5rem;
+}
+
+.browser-instructions ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.browser-instructions li {
+    margin: 0.5rem 0;
+}
+
+@media (min-width: 1024px) {
+    .desktop-mode-overlay {
+        display: none;
+    }
+}
