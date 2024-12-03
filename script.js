@@ -196,29 +196,97 @@ END:VCARD`;
 
     downloadQRCode() {
         const qrImage = this.qrcodeDiv.querySelector('img');
-        if (qrImage) {
-            const link = document.createElement('a');
-            link.href = qrImage.src;
-            link.download = `qrcode-${this.currentType}-${Date.now()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        if (!qrImage) {
+            alert('Please generate a QR code first');
+            return;
         }
+
+        // For mobile devices, create a temporary anchor with proper download attributes
+        const imageURL = qrImage.src;
+        const timestamp = new Date().getTime();
+        const fileName = `qrcode-${this.currentType}-${timestamp}.png`;
+
+        // Convert base64 to blob for better mobile compatibility
+        fetch(imageURL)
+            .then(response => response.blob())
+            .then(blob => {
+                // Create object URL for the blob
+                const blobUrl = window.URL.createObjectURL(blob);
+                
+                // Create temporary link
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = fileName;
+                link.style.display = 'none';
+                
+                // Add to document, click, and remove
+                document.body.appendChild(link);
+                link.click();
+                
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(blobUrl);
+                }, 100);
+            })
+            .catch(error => {
+                console.error('Download failed:', error);
+                alert('Download failed. Please try again.');
+            });
     }
 
     shareQRCode() {
         const qrImage = this.qrcodeDiv.querySelector('img');
-        if (qrImage && navigator.share) {
-            fetch(qrImage.src)
-                .then(response => response.blob())
-                .then(blob => {
-                    const file = new File([blob], 'qrcode.png', { type: 'image/png' });
-                    navigator.share({
-                        files: [file],
-                        title: 'QR Code',
-                        text: 'Check out this QR code!'
-                    }).catch(console.error);
+        if (!qrImage) {
+            alert('Please generate a QR code first');
+            return;
+        }
+
+        // Function to handle the actual sharing
+        const performShare = (blob) => {
+            const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Try sharing with file
+                navigator.share({
+                    files: [file],
+                    title: 'QR Code',
+                    text: 'Check out this QR code!'
+                }).catch(error => {
+                    console.error('Share failed:', error);
+                    // Fallback to basic share
+                    this.shareBasic();
                 });
+            } else {
+                // If file sharing not supported, use basic share
+                this.shareBasic();
+            }
+        };
+
+        // Convert image to blob and share
+        fetch(qrImage.src)
+            .then(response => response.blob())
+            .then(blob => performShare(blob))
+            .catch(error => {
+                console.error('Share preparation failed:', error);
+                this.shareBasic();
+            });
+    }
+
+    shareBasic() {
+        // Basic sharing fallback without file
+        if (navigator.share) {
+            navigator.share({
+                title: 'QR Code',
+                text: 'Check out this QR code!',
+                url: window.location.href
+            }).catch(error => {
+                console.error('Basic share failed:', error);
+                alert('Sharing failed. Please try downloading the QR code instead.');
+            });
+        } else {
+            alert('Sharing is not supported on this device. Please try downloading the QR code instead.');
+            this.downloadQRCode();
         }
     }
 
