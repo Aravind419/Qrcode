@@ -157,139 +157,245 @@ END:VCARD`;
     }
 
     generateQRCode() {
-        // Clear existing QR code
         this.qrcodeDiv.innerHTML = '';
-
-        // Collect data from all input fields
         const data = {};
         this.qrTypes[this.currentType].fields.forEach(field => {
             data[field.id] = document.getElementById(field.id).value;
         });
 
-        // Format data according to QR type
         const qrData = this.qrTypes[this.currentType].format(data);
 
-        // Generate new QR code with higher quality
-        const qr = new QRCode(this.qrcodeDiv, {
+        // Generate QR code with higher quality
+        new QRCode(this.qrcodeDiv, {
             text: qrData,
-            width: 256,  // Increased size for better quality
+            width: 256,
             height: 256,
             colorDark: this.foregroundColor.value,
             colorLight: this.backgroundColor.value,
-            correctLevel: QRCode.CorrectLevel.H,
-            quality: 1.0
+            correctLevel: QRCode.CorrectLevel.H
         });
 
-        // Add to history
-        this.addToHistory({
-            type: this.currentType,
-            data: data,
-            colors: {
-                foreground: this.foregroundColor.value,
-                background: this.backgroundColor.value
-            },
-            timestamp: new Date().toISOString()
-        });
-
-        // Show download button
+        // Show buttons after generation
         this.downloadBtn.classList.remove('hidden');
         this.shareBtn.classList.remove('hidden');
     }
 
-    downloadQRCode() {
-        const canvas = document.createElement('canvas');
-        const qrImage = this.qrcodeDiv.querySelector('img');
-        
-        if (!qrImage) {
-            alert('Please generate a QR code first');
-            return;
-        }
+    async downloadQRCode() {
+        try {
+            const qrImage = this.qrcodeDiv.querySelector('img');
+            if (!qrImage) {
+                this.showToast('Please generate a QR code first');
+                return;
+            }
 
-        // Create high-quality canvas
-        canvas.width = qrImage.width;
-        canvas.height = qrImage.height;
-        const ctx = canvas.getContext('2d');
-        
-        // Wait for image to load
-        qrImage.onload = () => {
-            ctx.drawImage(qrImage, 0, 0);
-            
+            // Show loading indicator
+            this.showLoading('Preparing download...');
+
+            // Create a high-quality version of the QR code
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;  // Larger size for better quality
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            // Set white background
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw QR code
+            const image = new Image();
+            image.src = qrImage.src;
+            await new Promise((resolve, reject) => {
+                image.onload = resolve;
+                image.onerror = reject;
+            });
+
+            // Calculate size to maintain aspect ratio
+            const size = Math.min(canvas.width, canvas.height) * 0.9;
+            const x = (canvas.width - size) / 2;
+            const y = (canvas.height - size) / 2;
+            ctx.drawImage(image, x, y, size, size);
+
             // Convert to blob
-            canvas.toBlob((blob) => {
-                const timestamp = new Date().getTime();
-                const fileName = `QRCode_${timestamp}.png`;
-                
-                if (window.navigator.msSaveOrOpenBlob) {
-                    // IE/Edge support
-                    window.navigator.msSaveOrOpenBlob(blob, fileName);
-                } else {
-                    // Create download link
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = fileName;
-                    
-                    // Trigger download
-                    document.body.appendChild(link);
-                    link.click();
-                    
-                    // Cleanup
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(downloadUrl);
-                }
-            }, 'image/png', 1.0);
-        };
-        
-        // Trigger load event
-        qrImage.src = qrImage.src;
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+            const fileName = this.generateFileName();
+
+            // Create download link
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+
+            this.hideLoading();
+            this.showToast('QR code downloaded successfully!');
+        } catch (error) {
+            console.error('Download failed:', error);
+            this.hideLoading();
+            this.showToast('Download failed. Please try again.');
+        }
     }
 
-    shareQRCode() {
-        const canvas = document.createElement('canvas');
-        const qrImage = this.qrcodeDiv.querySelector('img');
-        
-        if (!qrImage) {
-            alert('Please generate a QR code first');
-            return;
+    async shareQRCode() {
+        try {
+            const qrImage = this.qrcodeDiv.querySelector('img');
+            if (!qrImage) {
+                this.showToast('Please generate a QR code first');
+                return;
+            }
+
+            this.showLoading('Preparing to share...');
+
+            // Create high-quality QR code for sharing
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            // Set white background
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw QR code
+            const image = new Image();
+            image.src = qrImage.src;
+            await new Promise((resolve, reject) => {
+                image.onload = resolve;
+                image.onerror = reject;
+            });
+
+            // Calculate size to maintain aspect ratio
+            const size = Math.min(canvas.width, canvas.height) * 0.9;
+            const x = (canvas.width - size) / 2;
+            const y = (canvas.height - size) / 2;
+            ctx.drawImage(image, x, y, size, size);
+
+            // Get blob for sharing
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+            const file = new File([blob], this.generateFileName(), { type: 'image/png' });
+
+            this.hideLoading();
+
+            // Try different sharing methods
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Native sharing with file
+                await navigator.share({
+                    files: [file],
+                    title: 'QR Code',
+                    text: 'Here\'s your QR Code'
+                });
+            } else if (navigator.share) {
+                // Native sharing without file
+                await navigator.share({
+                    title: 'QR Code',
+                    text: 'Here\'s your QR Code',
+                    url: window.location.href
+                });
+            } else {
+                // Fallback to custom share modal
+                this.showShareModal(file);
+            }
+        } catch (error) {
+            console.error('Share failed:', error);
+            this.hideLoading();
+            this.showToast('Sharing failed. Please try downloading instead.');
         }
+    }
 
-        canvas.width = qrImage.width;
-        canvas.height = qrImage.height;
-        const ctx = canvas.getContext('2d');
+    // Helper methods
+    generateFileName() {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const type = this.currentType || 'qr';
+        return `qrcode-${type}-${timestamp}.png`;
+    }
 
-        // Create shareable image
-        qrImage.onload = () => {
-            ctx.drawImage(qrImage, 0, 0);
-            canvas.toBlob(async (blob) => {
-                const file = new File([blob], 'QRCode.png', { type: 'image/png' });
+    showLoading(message) {
+        if (!this.loadingElement) {
+            this.loadingElement = document.createElement('div');
+            this.loadingElement.className = 'loading-overlay';
+            this.loadingElement.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-message"></div>
+            `;
+            document.body.appendChild(this.loadingElement);
+        }
+        this.loadingElement.querySelector('.loading-message').textContent = message;
+        this.loadingElement.style.display = 'flex';
+    }
 
-                try {
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'QR Code',
-                            text: 'Here\'s your QR Code'
-                        });
-                    } else if (navigator.share) {
-                        // Fallback to basic share if file sharing is not supported
-                        await navigator.share({
-                            title: 'QR Code',
-                            text: 'Here\'s your QR Code',
-                            url: window.location.href
-                        });
-                    } else {
-                        throw new Error('Sharing not supported');
-                    }
-                } catch (error) {
-                    console.error('Sharing failed:', error);
-                    alert('Sharing is not supported. Please use the download button instead.');
-                    this.downloadQRCode();
-                }
-            }, 'image/png', 1.0);
+    hideLoading() {
+        if (this.loadingElement) {
+            this.loadingElement.style.display = 'none';
+        }
+    }
+
+    showToast(message, duration = 3000) {
+        if (!this.toastElement) {
+            this.toastElement = document.createElement('div');
+            this.toastElement.className = 'toast-message';
+            document.body.appendChild(this.toastElement);
+        }
+        this.toastElement.textContent = message;
+        this.toastElement.classList.add('show');
+        setTimeout(() => {
+            this.toastElement.classList.remove('show');
+        }, duration);
+    }
+
+    showShareModal(file) {
+        const modal = document.createElement('div');
+        modal.className = 'share-modal';
+        modal.innerHTML = `
+            <div class="share-modal-content">
+                <h3>Share QR Code</h3>
+                <div class="share-options">
+                    <button class="share-option" data-type="download">
+                        <i class="fas fa-download"></i>
+                        <span>Download</span>
+                    </button>
+                    <button class="share-option" data-type="copy">
+                        <i class="fas fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                    <button class="share-option" data-type="email">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email</span>
+                    </button>
+                </div>
+                <button class="close-modal">Close</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Handle modal actions
+        modal.querySelector('.close-modal').onclick = () => {
+            document.body.removeChild(modal);
         };
 
-        // Trigger load event
-        qrImage.src = qrImage.src;
+        modal.querySelector('[data-type="download"]').onclick = () => {
+            this.downloadQRCode();
+            document.body.removeChild(modal);
+        };
+
+        modal.querySelector('[data-type="copy"]').onclick = async () => {
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': file })
+                ]);
+                this.showToast('QR code copied to clipboard!');
+            } catch (err) {
+                this.showToast('Failed to copy QR code');
+            }
+            document.body.removeChild(modal);
+        };
+
+        modal.querySelector('[data-type="email"]').onclick = () => {
+            const mailTo = `mailto:?subject=QR Code&body=Here's your QR code.`;
+            window.location.href = mailTo;
+            document.body.removeChild(modal);
+        };
     }
 
     addToHistory(item) {
