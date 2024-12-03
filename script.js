@@ -12,6 +12,7 @@ class QRCodeGenerator {
         this.loadHistory();
         this.currentType = 'url';
         this.setupQRTypes();
+        this.setupCameraScanner();
     }
 
     isDesktopMode() {
@@ -659,6 +660,129 @@ END:VCARD`;
     loadThemePreference() {
         const darkMode = localStorage.getItem('darkMode') === 'true';
         document.body.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    }
+
+    setupCameraScanner() {
+        // Add camera button to navbar
+        const navButtons = document.querySelector('.nav-buttons');
+        this.cameraBtn = document.createElement('button');
+        this.cameraBtn.className = 'camera-btn';
+        this.cameraBtn.innerHTML = '<i class="fas fa-camera"></i>';
+        this.cameraBtn.onclick = () => this.openCameraScanner();
+        navButtons.appendChild(this.cameraBtn);
+
+        // Create scanner modal
+        this.scannerModal = document.createElement('div');
+        this.scannerModal.className = 'scanner-modal';
+        this.scannerModal.innerHTML = `
+            <div class="scanner-content">
+                <div class="scanner-header">
+                    <h3>Scan QR Code</h3>
+                    <button class="close-scanner"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="video-container">
+                    <video id="qr-video"></video>
+                    <div class="scanning-overlay"></div>
+                </div>
+                <div class="scanner-message">Position QR code within frame</div>
+            </div>
+        `;
+        document.body.appendChild(this.scannerModal);
+
+        // Setup close button
+        this.scannerModal.querySelector('.close-scanner').onclick = () => this.closeCameraScanner();
+    }
+
+    async openCameraScanner() {
+        try {
+            // Load QR Scanner library dynamically
+            if (!window.QrScanner) {
+                await this.loadQrScannerLibrary();
+            }
+
+            const videoElement = document.getElementById('qr-video');
+            this.scannerModal.style.display = 'flex';
+
+            // Initialize QR Scanner
+            this.qrScanner = new QrScanner(
+                videoElement,
+                result => this.handleScanResult(result),
+                {
+                    highlightScanRegion: true,
+                    highlightCodeOutline: true,
+                }
+            );
+
+            await this.qrScanner.start();
+        } catch (error) {
+            console.error('Camera access failed:', error);
+            this.showToast('Camera access denied. Please check your permissions.');
+        }
+    }
+
+    async loadQrScannerLibrary() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/qr-scanner/qr-scanner.umd.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    closeCameraScanner() {
+        if (this.qrScanner) {
+            this.qrScanner.stop();
+            this.qrScanner.destroy();
+            this.qrScanner = null;
+        }
+        this.scannerModal.style.display = 'none';
+    }
+
+    async handleScanResult(result) {
+        this.closeCameraScanner();
+        
+        // Check if result is URL
+        try {
+            const url = new URL(result);
+            if (url.protocol === 'http:' || url.protocol === 'https:') {
+                // Show confirmation modal before redirect
+                if (confirm(`Open this URL?\n${result}`)) {
+                    window.open(result, '_blank');
+                }
+                return;
+            }
+        } catch (e) {
+            // Not a URL, continue with normal handling
+        }
+
+        // Handle other types of QR codes
+        this.showToast('QR Code scanned: ' + result);
+        
+        // Try to determine the QR type and populate form
+        this.handleScannedContent(result);
+    }
+
+    handleScannedContent(content) {
+        // Detect content type and populate appropriate form
+        if (content.startsWith('mailto:')) {
+            this.changeQRType('email');
+            // Parse email content and populate fields
+            const email = content.replace('mailto:', '').split('?')[0];
+            document.getElementById('emailTo').value = email;
+        } else if (content.startsWith('tel:')) {
+            this.changeQRType('phone');
+            const phone = content.replace('tel:', '');
+            document.getElementById('phoneNumber').value = phone;
+        } else if (content.startsWith('WIFI:')) {
+            this.changeQRType('wifi');
+            // Parse WiFi content and populate fields
+            // ... add WiFi parsing logic
+        } else {
+            // Default to URL type
+            this.changeQRType('url');
+            document.getElementById('urlInput').value = content;
+        }
     }
 }
 
