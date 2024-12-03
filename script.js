@@ -208,18 +208,41 @@ END:VCARD`;
 
     shareQRCode() {
         const qrImage = this.qrcodeDiv.querySelector('img');
-        if (qrImage && navigator.share) {
-            fetch(qrImage.src)
-                .then(response => response.blob())
-                .then(blob => {
-                    const file = new File([blob], 'qrcode.png', { type: 'image/png' });
-                    navigator.share({
-                        files: [file],
-                        title: 'QR Code',
-                        text: 'Check out this QR code!'
-                    }).catch(console.error);
-                });
+        if (!qrImage) {
+            alert('Please generate a QR code first');
+            return;
         }
+
+        // Check if Web Share API is supported
+        if (!navigator.share) {
+            // Fallback: Create a download if sharing is not supported
+            this.downloadQRCode();
+            alert('Sharing is not supported on this browser. The QR code has been downloaded instead.');
+            return;
+        }
+
+        // Convert image to blob and share
+        fetch(qrImage.src)
+            .then(response => response.blob())
+            .then(blob => {
+                const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+                return navigator.share({
+                    files: [file],
+                    title: 'QR Code',
+                    text: 'Check out this QR code!'
+                });
+            })
+            .catch(error => {
+                console.error('Error sharing:', error);
+                // If sharing files fails, try sharing just the text/title
+                navigator.share({
+                    title: 'QR Code',
+                    text: 'Check out this QR code!'
+                }).catch(err => {
+                    console.error('Fallback sharing failed:', err);
+                    alert('Unable to share. Please try downloading the QR code instead.');
+                });
+            });
     }
 
     addToHistory(item) {
