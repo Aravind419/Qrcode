@@ -26,13 +26,13 @@ class QRCodeGenerator {
         this.qrTypes = {
             url: {
                 fields: [
-                    { label: 'Website URL', type: 'url', id: 'urlInput', placeholder: 'https://example.com' }
+                    { label: 'Website URL', type: 'url', id: 'urlInput', placeholder: 'https://aravind-6.vercel.app' }
                 ],
                 format: (data) => data.urlInput
             },
             email: {
                 fields: [
-                    { label: 'Email Address', type: 'email', id: 'emailTo', placeholder: 'recipient@example.com' },
+                    { label: 'Email Address', type: 'email', id: 'emailTo', placeholder: 'aravind@example.com' },
                     { label: 'Subject', type: 'text', id: 'emailSubject', placeholder: 'Email Subject' },
                     { label: 'Message', type: 'textarea', id: 'emailBody', placeholder: 'Email Body' }
                 ],
@@ -40,20 +40,20 @@ class QRCodeGenerator {
             },
             phone: {
                 fields: [
-                    { label: 'Phone Number', type: 'tel', id: 'phoneNumber', placeholder: '234567890' }
+                    { label: 'Phone Number', type: 'tel', id: 'phoneNumber', placeholder: '9876543210' }
                 ],
                 format: (data) => `tel:${data.phoneNumber}`
             },
             sms: {
                 fields: [
-                    { label: 'Phone Number', type: 'tel', id: 'smsNumber', placeholder: '+1234567890' },
+                    { label: 'Phone Number', type: 'tel', id: 'smsNumber', placeholder: '9876543210' },
                     { label: 'Message', type: 'textarea', id: 'smsMessage', placeholder: 'SMS Message' }
                 ],
                 format: (data) => `sms:${data.smsNumber}?body=${encodeURIComponent(data.smsMessage)}`
             },
             whatsapp: {
                 fields: [
-                    { label: 'Phone Number', type: 'tel', id: 'waNumber', placeholder: '+91234567890' },
+                    { label: 'Phone Number', type: 'tel', id: 'waNumber', placeholder: '9876543217' },
                     { label: 'Message', type: 'textarea', id: 'waMessage', placeholder: 'WhatsApp Message' }
                 ],
                 format: (data) => `https://wa.me/${data.waNumber.replace(/\D/g, '')}?text=${encodeURIComponent(data.waMessage)}`
@@ -68,10 +68,10 @@ class QRCodeGenerator {
             },
             vcard: {
                 fields: [
-                    { label: 'Full Name', type: 'text', id: 'vcardName', placeholder: 'John Doe' },
-                    { label: 'Phone', type: 'tel', id: 'vcardPhone', placeholder: '+1234567890' },
-                    { label: 'Email', type: 'email', id: 'vcardEmail', placeholder: 'john@example.com' },
-                    { label: 'Website', type: 'url', id: 'vcardUrl', placeholder: 'https://example.com' },
+                    { label: 'Full Name', type: 'text', id: 'vcardName', placeholder: 'Aravind' },
+                    { label: 'Phone', type: 'tel', id: 'vcardPhone', placeholder: '9807645312' },
+                    { label: 'Email', type: 'email', id: 'vcardEmail', placeholder: 'aravind@example.com' },
+                    { label: 'Website', type: 'url', id: 'vcardUrl', placeholder: 'https://aravind.com' },
                     { label: 'Company', type: 'text', id: 'vcardOrg', placeholder: 'Company Name' },
                     { label: 'Address', type: 'text', id: 'vcardAddress', placeholder: 'Street, City, Country' }
                 ],
