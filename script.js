@@ -1,38 +1,41 @@
 class QRCodeGenerator {
-    constructor() {
-        // Check for desktop mode first
-        if (!this.isDesktopMode()) {
-            this.showDesktopModePrompt();
-            return;
-        }
-
-        this.initializeElements();
-        this.setupEventListeners();
-        this.loadThemePreference();
-        this.loadHistory();
-        this.currentType = 'url';
-        this.setupQRTypes();
-        this.setupCameraScanner();
+  constructor() {
+    // Check for desktop mode first
+    if (!this.isDesktopMode()) {
+      this.showDesktopModePrompt();
+      return;
     }
 
-    isDesktopMode() {
-        // Check if the device is mobile and not in desktop mode
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const viewportWidth = window.innerWidth;
-        const isDesktopMode = viewportWidth >= 1024; // Common desktop breakpoint
+    this.initializeElements();
+    this.setupEventListeners();
+    this.loadThemePreference();
+    this.loadHistory();
+    this.currentType = "url";
+    this.setupQRTypes();
+    this.setupCameraScanner();
+  }
 
-        return !isMobile || isDesktopMode;
-    }
+  isDesktopMode() {
+    // Check if the device is mobile and not in desktop mode
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+    const viewportWidth = window.innerWidth;
+    const isDesktopMode = viewportWidth >= 1024; // Common desktop breakpoint
 
-    showDesktopModePrompt() {
-        // Create and show the desktop mode prompt
-        const overlay = document.createElement('div');
-        overlay.className = 'desktop-mode-overlay';
-        
-        const content = document.createElement('div');
-        content.className = 'desktop-mode-content';
-        
-        content.innerHTML = `
+    return !isMobile || isDesktopMode;
+  }
+
+  showDesktopModePrompt() {
+    // Create and show the desktop mode prompt
+    const overlay = document.createElement("div");
+    overlay.className = "desktop-mode-overlay";
+
+    const content = document.createElement("div");
+    content.className = "desktop-mode-content";
+
+    content.innerHTML = `
             <div class="desktop-mode-icon">
                 <i class="fas fa-desktop"></i>
             </div>
@@ -55,80 +58,179 @@ class QRCodeGenerator {
             </div>
         `;
 
-        overlay.appendChild(content);
-        document.body.appendChild(overlay);
-        document.body.style.overflow = 'hidden'; // Prevent scrolling
-    }
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+    document.body.style.overflow = "hidden"; // Prevent scrolling
+  }
 
-    initializeElements() {
-        this.inputFields = document.getElementById('inputFields');
-        this.qrcodeDiv = document.getElementById('qrcode');
-        this.downloadBtn = document.getElementById('downloadBtn');
-        this.shareBtn = document.getElementById('shareBtn');
-        this.historyList = document.getElementById('historyList');
-        this.clearHistoryBtn = document.getElementById('clearHistory');
-        this.darkModeToggle = document.getElementById('darkModeToggle');
-        this.foregroundColor = document.getElementById('foregroundColor');
-        this.backgroundColor = document.getElementById('backgroundColor');
-        this.logoUpload = document.getElementById('logoUpload');
-        this.generateBtn = document.getElementById('generateBtn');
-        this.history = [];
+  initializeElements() {
+    this.inputFields = document.getElementById("inputFields");
+    this.qrcodeDiv = document.getElementById("qrcode");
+    this.downloadBtn = document.getElementById("downloadBtn");
+    this.shareBtn = document.getElementById("shareBtn");
+    this.historyList = document.getElementById("historyList");
+    this.clearHistoryBtn = document.getElementById("clearHistory");
+    this.darkModeToggle = document.getElementById("darkModeToggle");
+    this.foregroundColor = document.getElementById("foregroundColor");
+    this.backgroundColor = document.getElementById("backgroundColor");
+    this.logoUpload = document.getElementById("logoUpload");
+    this.generateBtn = document.getElementById("generateBtn");
+    this.history = [];
 
-        // Define input fields for different QR types
-        this.qrTypes = {
-            url: {
-                fields: [
-                    { label: 'Website URL', type: 'url', id: 'urlInput', placeholder: 'https://aravind-6.vercel.app' }
-                ],
-                format: (data) => data.urlInput
-            },
-            email: {
-                fields: [
-                    { label: 'Email Address', type: 'email', id: 'emailTo', placeholder: 'aravind@example.com' },
-                    { label: 'Subject', type: 'text', id: 'emailSubject', placeholder: 'Email Subject' },
-                    { label: 'Message', type: 'textarea', id: 'emailBody', placeholder: 'Email Body' }
-                ],
-                format: (data) => `mailto:${data.emailTo}?subject=${encodeURIComponent(data.emailSubject)}&body=${encodeURIComponent(data.emailBody)}`
-            },
-            phone: {
-                fields: [
-                    { label: 'Phone Number', type: 'tel', id: 'phoneNumber', placeholder: '9876543210' }
-                ],
-                format: (data) => `tel:${data.phoneNumber}`
-            },
-            sms: {
-                fields: [
-                    { label: 'Phone Number', type: 'tel', id: 'smsNumber', placeholder: '9876543210' },
-                    { label: 'Message', type: 'textarea', id: 'smsMessage', placeholder: 'SMS Message' }
-                ],
-                format: (data) => `sms:${data.smsNumber}?body=${encodeURIComponent(data.smsMessage)}`
-            },
-            whatsapp: {
-                fields: [
-                    { label: 'Phone Number', type: 'tel', id: 'waNumber', placeholder: '9876543217' },
-                    { label: 'Message', type: 'textarea', id: 'waMessage', placeholder: 'WhatsApp Message' }
-                ],
-                format: (data) => `https://wa.me/${data.waNumber.replace(/\D/g, '')}?text=${encodeURIComponent(data.waMessage)}`
-            },
-            wifi: {
-                fields: [
-                    { label: 'Network Name (SSID)', type: 'text', id: 'wifiSsid', placeholder: 'Network Name' },
-                    { label: 'Password', type: 'password', id: 'wifiPassword', placeholder: 'Network Password' },
-                    { label: 'Encryption Type', type: 'select', id: 'wifiType', options: ['WPA', 'WEP', 'nopass'] }
-                ],
-                format: (data) => `WIFI:T:${data.wifiType};S:${data.wifiSsid};P:${data.wifiPassword};;`
-            },
-            vcard: {
-                fields: [
-                    { label: 'Full Name', type: 'text', id: 'vcardName', placeholder: 'Aravind' },
-                    { label: 'Phone', type: 'tel', id: 'vcardPhone', placeholder: '9807645312' },
-                    { label: 'Email', type: 'email', id: 'vcardEmail', placeholder: 'aravind@example.com' },
-                    { label: 'Website', type: 'url', id: 'vcardUrl', placeholder: 'https://aravind.com' },
-                    { label: 'Company', type: 'text', id: 'vcardOrg', placeholder: 'Company Name' },
-                    { label: 'Address', type: 'text', id: 'vcardAddress', placeholder: 'Street, City, Country' }
-                ],
-                format: (data) => {
-                    return `BEGIN:VCARD
+    // Define input fields for different QR types
+    this.qrTypes = {
+      url: {
+        fields: [
+          {
+            label: "Website URL",
+            type: "url",
+            id: "urlInput",
+            placeholder: "https://aravind-6.vercel.app",
+          },
+        ],
+        format: (data) => data.urlInput,
+      },
+      email: {
+        fields: [
+          {
+            label: "Email Address",
+            type: "email",
+            id: "emailTo",
+            placeholder: "aravind@example.com",
+          },
+          {
+            label: "Subject",
+            type: "text",
+            id: "emailSubject",
+            placeholder: "Email Subject",
+          },
+          {
+            label: "Message",
+            type: "textarea",
+            id: "emailBody",
+            placeholder: "Email Body",
+          },
+        ],
+        format: (data) =>
+          `mailto:${data.emailTo}?subject=${encodeURIComponent(
+            data.emailSubject
+          )}&body=${encodeURIComponent(data.emailBody)}`,
+      },
+      phone: {
+        fields: [
+          {
+            label: "Phone Number",
+            type: "tel",
+            id: "phoneNumber",
+            placeholder: "9876543210",
+          },
+        ],
+        format: (data) => `tel:${data.phoneNumber}`,
+      },
+      sms: {
+        fields: [
+          {
+            label: "Phone Number",
+            type: "tel",
+            id: "smsNumber",
+            placeholder: "9876543210",
+          },
+          {
+            label: "Message",
+            type: "textarea",
+            id: "smsMessage",
+            placeholder: "SMS Message",
+          },
+        ],
+        format: (data) =>
+          `sms:${data.smsNumber}?body=${encodeURIComponent(data.smsMessage)}`,
+      },
+      whatsapp: {
+        fields: [
+          {
+            label: "Phone Number",
+            type: "tel",
+            id: "waNumber",
+            placeholder: "9876543217",
+          },
+          {
+            label: "Message",
+            type: "textarea",
+            id: "waMessage",
+            placeholder: "WhatsApp Message",
+          },
+        ],
+        format: (data) =>
+          `https://wa.me/${data.waNumber.replace(
+            /\D/g,
+            ""
+          )}?text=${encodeURIComponent(data.waMessage)}`,
+      },
+      wifi: {
+        fields: [
+          {
+            label: "Network Name (SSID)",
+            type: "text",
+            id: "wifiSsid",
+            placeholder: "Network Name",
+          },
+          {
+            label: "Password",
+            type: "password",
+            id: "wifiPassword",
+            placeholder: "Network Password",
+          },
+          {
+            label: "Encryption Type",
+            type: "select",
+            id: "wifiType",
+            options: ["WPA", "WEP", "nopass"],
+          },
+        ],
+        format: (data) =>
+          `WIFI:T:${data.wifiType};S:${data.wifiSsid};P:${data.wifiPassword};;`,
+      },
+      vcard: {
+        fields: [
+          {
+            label: "Full Name",
+            type: "text",
+            id: "vcardName",
+            placeholder: "Aravind",
+          },
+          {
+            label: "Phone",
+            type: "tel",
+            id: "vcardPhone",
+            placeholder: "9807645312",
+          },
+          {
+            label: "Email",
+            type: "email",
+            id: "vcardEmail",
+            placeholder: "aravind@example.com",
+          },
+          {
+            label: "Website",
+            type: "url",
+            id: "vcardUrl",
+            placeholder: "https://aravind.com",
+          },
+          {
+            label: "Company",
+            type: "text",
+            id: "vcardOrg",
+            placeholder: "Company Name",
+          },
+          {
+            label: "Address",
+            type: "text",
+            id: "vcardAddress",
+            placeholder: "Street, City, Country",
+          },
+        ],
+        format: (data) => {
+          return `BEGIN:VCARD
 VERSION:3.0
 FN:${data.vcardName}
 TEL:${data.vcardPhone}
@@ -137,361 +239,398 @@ URL:${data.vcardUrl}
 ORG:${data.vcardOrg}
 ADR:;;${data.vcardAddress};;;
 END:VCARD`;
-                }
-            },
-            text: {
-                fields: [
-                    { label: 'Text Content', type: 'textarea', id: 'textContent', placeholder: 'Enter your text here' }
-                ],
-                format: (data) => data.textContent
-            }
-        };
-    }
+        },
+      },
+      text: {
+        fields: [
+          {
+            label: "Text Content",
+            type: "textarea",
+            id: "textContent",
+            placeholder: "Enter your text here",
+          },
+        ],
+        format: (data) => data.textContent,
+      },
+    };
+  }
 
-    setupEventListeners() {
-        this.generateBtn.addEventListener('click', () => this.generateQRCode());
-        this.downloadBtn.addEventListener('click', () => this.downloadQRCode());
-        this.shareBtn.addEventListener('click', () => this.shareQRCode());
-        this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
-        this.darkModeToggle.addEventListener('click', () => this.toggleDarkMode());
-        
-        // Setup QR type selection
-        document.querySelectorAll('.qr-type-list li').forEach(item => {
-            item.addEventListener('click', () => this.changeQRType(item.dataset.type));
+  setupEventListeners() {
+    this.generateBtn.addEventListener("click", () => this.generateQRCode());
+    this.downloadBtn.addEventListener("click", () => this.downloadQRCode());
+    this.shareBtn.addEventListener("click", () => this.shareQRCode());
+    this.clearHistoryBtn.addEventListener("click", () => this.clearHistory());
+    this.darkModeToggle.addEventListener("click", () => this.toggleDarkMode());
+
+    // Setup QR type selection
+    document.querySelectorAll(".qr-type-list li").forEach((item) => {
+      item.addEventListener("click", () =>
+        this.changeQRType(item.dataset.type)
+      );
+    });
+  }
+
+  setupQRTypes() {
+    this.changeQRType("url"); // Set default type
+  }
+
+  changeQRType(type) {
+    // Update active state in sidebar
+    document.querySelectorAll(".qr-type-list li").forEach((item) => {
+      item.classList.toggle("active", item.dataset.type === type);
+    });
+
+    this.currentType = type;
+    this.inputFields.innerHTML = ""; // Clear existing fields
+
+    // Create new input fields for selected type
+    this.qrTypes[type].fields.forEach((field) => {
+      const inputGroup = document.createElement("div");
+      inputGroup.className = "input-group";
+
+      const label = document.createElement("label");
+      label.textContent = field.label;
+      label.setAttribute("for", field.id);
+
+      let input;
+      if (field.type === "textarea") {
+        input = document.createElement("textarea");
+      } else if (field.type === "select") {
+        input = document.createElement("select");
+        field.options.forEach((option) => {
+          const optionElement = document.createElement("option");
+          optionElement.value = option;
+          optionElement.textContent = option;
+          input.appendChild(optionElement);
         });
+      } else {
+        input = document.createElement("input");
+        input.type = field.type;
+      }
+
+      input.id = field.id;
+      input.placeholder = field.placeholder;
+
+      inputGroup.appendChild(label);
+      inputGroup.appendChild(input);
+      this.inputFields.appendChild(inputGroup);
+    });
+  }
+
+  generateQRCode() {
+    this.qrcodeDiv.innerHTML = "";
+    const data = {};
+    this.qrTypes[this.currentType].fields.forEach((field) => {
+      data[field.id] = document.getElementById(field.id).value;
+    });
+
+    const qrData = this.qrTypes[this.currentType].format(data);
+
+    // Generate QR code with higher quality
+    new QRCode(this.qrcodeDiv, {
+      text: qrData,
+      width: 256,
+      height: 256,
+      colorDark: this.foregroundColor.value,
+      colorLight: this.backgroundColor.value,
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+
+    // Add click-to-save functionality for mobile
+    const qrImage = this.qrcodeDiv.querySelector("img");
+    if (qrImage) {
+      qrImage.style.cursor = "pointer";
+      qrImage.title = "Tap to save QR Code";
+      qrImage.addEventListener("click", () => this.handleQRCodeClick(qrImage));
     }
 
-    setupQRTypes() {
-        this.changeQRType('url'); // Set default type
-    }
+    // Show buttons after generation
+    this.downloadBtn.classList.remove("hidden");
+    this.shareBtn.classList.remove("hidden");
+  }
 
-    changeQRType(type) {
-        // Update active state in sidebar
-        document.querySelectorAll('.qr-type-list li').forEach(item => {
-            item.classList.toggle('active', item.dataset.type === type);
-        });
+  async handleQRCodeClick(qrImage) {
+    // Check if it's a mobile device
+    if (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      )
+    ) {
+      try {
+        // Create a canvas with white background
+        const canvas = document.createElement("canvas");
+        canvas.width = qrImage.width + 40; // Add padding
+        canvas.height = qrImage.height + 40;
+        const ctx = canvas.getContext("2d");
 
-        this.currentType = type;
-        this.inputFields.innerHTML = ''; // Clear existing fields
+        // Fill white background
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Create new input fields for selected type
-        this.qrTypes[type].fields.forEach(field => {
-            const inputGroup = document.createElement('div');
-            inputGroup.className = 'input-group';
+        // Draw QR code in the center
+        ctx.drawImage(qrImage, 20, 20, qrImage.width, qrImage.height);
 
-            const label = document.createElement('label');
-            label.textContent = field.label;
-            label.setAttribute('for', field.id);
+        // Convert to blob
+        const blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/png", 1.0)
+        );
 
-            let input;
-            if (field.type === 'textarea') {
-                input = document.createElement('textarea');
-            } else if (field.type === 'select') {
-                input = document.createElement('select');
-                field.options.forEach(option => {
-                    const optionElement = document.createElement('option');
-                    optionElement.value = option;
-                    optionElement.textContent = option;
-                    input.appendChild(optionElement);
-                });
-            } else {
-                input = document.createElement('input');
-                input.type = field.type;
-            }
-
-            input.id = field.id;
-            input.placeholder = field.placeholder;
-
-            inputGroup.appendChild(label);
-            inputGroup.appendChild(input);
-            this.inputFields.appendChild(inputGroup);
-        });
-    }
-
-    generateQRCode() {
-        this.qrcodeDiv.innerHTML = '';
-        const data = {};
-        this.qrTypes[this.currentType].fields.forEach(field => {
-            data[field.id] = document.getElementById(field.id).value;
-        });
-
-        const qrData = this.qrTypes[this.currentType].format(data);
-
-        // Generate QR code with higher quality
-        new QRCode(this.qrcodeDiv, {
-            text: qrData,
-            width: 256,
-            height: 256,
-            colorDark: this.foregroundColor.value,
-            colorLight: this.backgroundColor.value,
-            correctLevel: QRCode.CorrectLevel.H
-        });
-
-        // Add click-to-save functionality for mobile
-        const qrImage = this.qrcodeDiv.querySelector('img');
-        if (qrImage) {
-            qrImage.style.cursor = 'pointer';
-            qrImage.title = 'Tap to save QR Code';
-            qrImage.addEventListener('click', () => this.handleQRCodeClick(qrImage));
-        }
-
-        // Show buttons after generation
-        this.downloadBtn.classList.remove('hidden');
-        this.shareBtn.classList.remove('hidden');
-    }
-
-    async handleQRCodeClick(qrImage) {
-        // Check if it's a mobile device
-        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-            try {
-                // Create a canvas with white background
-                const canvas = document.createElement('canvas');
-                canvas.width = qrImage.width + 40; // Add padding
-                canvas.height = qrImage.height + 40;
-                const ctx = canvas.getContext('2d');
-
-                // Fill white background
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // Draw QR code in the center
-                ctx.drawImage(qrImage, 20, 20, qrImage.width, qrImage.height);
-
-                // Convert to blob
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-                
-                // Try saving using different methods
-                if ('showSaveFilePicker' in window) {
-                    // Use File System Access API
-                    try {
-                        const handle = await window.showSaveFilePicker({
-                            suggestedName: this.generateFileName(),
-                            types: [{
-                                description: 'PNG Image',
-                                accept: {'image/png': ['.png']},
-                            }],
-                        });
-                        const writable = await handle.createWritable();
-                        await writable.write(blob);
-                        await writable.close();
-                        this.showToast('QR code saved successfully!');
-                        return;
-                    } catch (e) {
-                        console.log('File System Access API failed, trying alternative method');
-                    }
-                }
-
-                // Fallback method
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = this.generateFileName();
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                this.showToast('Tap and hold the QR code to save');
-            } catch (error) {
-                console.error('Save failed:', error);
-                this.showToast('Could not save QR code. Please try the download button.');
-            }
-        }
-    }
-
-    async downloadQRCode() {
-        try {
-            const qrImage = this.qrcodeDiv.querySelector('img');
-            if (!qrImage) {
-                this.showToast('Please generate a QR code first');
-                return;
-            }
-
-            this.showLoading('Preparing download...');
-
-            // Create canvas with proper sizing for mobile
-            const canvas = document.createElement('canvas');
-            const size = Math.min(window.innerWidth * 0.8, 1024); // Responsive size
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-
-            // Set white background
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Load image with proper error handling
-            const image = new Image();
-            image.crossOrigin = 'anonymous'; // Handle CORS issues
-            
-            await new Promise((resolve, reject) => {
-                image.onload = resolve;
-                image.onerror = reject;
-                image.src = qrImage.src;
+        // Try saving using different methods
+        if ("showSaveFilePicker" in window) {
+          // Use File System Access API
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: this.generateFileName(),
+              types: [
+                {
+                  description: "PNG Image",
+                  accept: { "image/png": [".png"] },
+                },
+              ],
             });
-
-            // Draw image with padding
-            const padding = size * 0.1;
-            const imageSize = size - (padding * 2);
-            ctx.drawImage(image, padding, padding, imageSize, imageSize);
-
-            // For mobile devices
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                try {
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-                    const fileName = `QRCode_${Date.now()}.png`;
-
-                    // Try the download attribute first
-                    const downloadUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = fileName;
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-                    
-                    // Trigger click with a slight delay for mobile
-                    setTimeout(() => {
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(downloadUrl);
-                        this.hideLoading();
-                        this.showToast('Long press the image to save');
-                    }, 100);
-                } catch (error) {
-                    console.error('Mobile download failed:', error);
-                    this.showToast('Please long press the QR code to save');
-                }
-            } else {
-                // Desktop download
-                canvas.toBlob(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = this.generateFileName();
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    this.hideLoading();
-                    this.showToast('QR code downloaded successfully!');
-                }, 'image/png', 1.0);
-            }
-        } catch (error) {
-            console.error('Download failed:', error);
-            this.hideLoading();
-            this.showToast('Download failed. Please try again.');
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            this.showToast("QR code saved successfully!");
+            return;
+          } catch (e) {
+            console.log(
+              "File System Access API failed, trying alternative method"
+            );
+          }
         }
-    }
 
-    async shareQRCode() {
+        // Fallback method
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = this.generateFileName();
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast("Tap and hold the QR code to save");
+      } catch (error) {
+        console.error("Save failed:", error);
+        this.showToast(
+          "Could not save QR code. Please try the download button."
+        );
+      }
+    }
+  }
+
+  async downloadQRCode() {
+    try {
+      const qrImage = this.qrcodeDiv.querySelector("img");
+      if (!qrImage) {
+        this.showToast("Please generate a QR code first");
+        return;
+      }
+
+      this.showLoading("Preparing download...");
+
+      // Create canvas with proper sizing for mobile
+      const canvas = document.createElement("canvas");
+      const size = Math.min(window.innerWidth * 0.8, 1024); // Responsive size
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+
+      // Set white background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Load image with proper error handling
+      const image = new Image();
+      image.crossOrigin = "anonymous"; // Handle CORS issues
+
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = qrImage.src;
+      });
+
+      // Draw image with padding
+      const padding = size * 0.1;
+      const imageSize = size - padding * 2;
+      ctx.drawImage(image, padding, padding, imageSize, imageSize);
+
+      // For mobile devices
+      if (
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        )
+      ) {
         try {
-            const qrImage = this.qrcodeDiv.querySelector('img');
-            if (!qrImage) {
-                this.showToast('Please generate a QR code first');
-                return;
-            }
+          const blob = await new Promise((resolve) =>
+            canvas.toBlob(resolve, "image/png", 1.0)
+          );
+          const fileName = `QRCode_${Date.now()}.png`;
 
-            this.showLoading('Preparing to share...');
+          // Try the download attribute first
+          const downloadUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = downloadUrl;
+          a.download = fileName;
+          a.style.display = "none";
+          document.body.appendChild(a);
 
-            // Create high-quality QR code for sharing
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 1024;
-            const ctx = canvas.getContext('2d');
-
-            // Set white background
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw QR code
-            const image = new Image();
-            image.src = qrImage.src;
-            await new Promise((resolve, reject) => {
-                image.onload = resolve;
-                image.onerror = reject;
-            });
-
-            // Calculate size to maintain aspect ratio
-            const size = Math.min(canvas.width, canvas.height) * 0.9;
-            const x = (canvas.width - size) / 2;
-            const y = (canvas.height - size) / 2;
-            ctx.drawImage(image, x, y, size, size);
-
-            // Get blob for sharing
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-            const file = new File([blob], this.generateFileName(), { type: 'image/png' });
-
+          // Trigger click with a slight delay for mobile
+          setTimeout(() => {
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
             this.hideLoading();
-
-            // Try different sharing methods
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                // Native sharing with file
-                await navigator.share({
-                    files: [file],
-                    title: 'QR Code',
-                    text: 'Here\'s your QR Code'
-                });
-            } else if (navigator.share) {
-                // Native sharing without file
-                await navigator.share({
-                    title: 'QR Code',
-                    text: 'Here\'s your QR Code',
-                    url: window.location.href
-                });
-            } else {
-                // Fallback to custom share modal
-                this.showShareModal(file);
-            }
+            this.showToast("Long press the image to save");
+          }, 100);
         } catch (error) {
-            console.error('Share failed:', error);
-            this.hideLoading();
-            this.showToast('Sharing failed. Please try downloading instead.');
+          console.error("Mobile download failed:", error);
+          this.showToast("Please long press the QR code to save");
         }
+      } else {
+        // Desktop download
+        canvas.toBlob(
+          (blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = this.generateFileName();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            this.hideLoading();
+            this.showToast("QR code downloaded successfully!");
+          },
+          "image/png",
+          1.0
+        );
+      }
+    } catch (error) {
+      console.error("Download failed:", error);
+      this.hideLoading();
+      this.showToast("Download failed. Please try again.");
     }
+  }
 
-    // Helper methods
-    generateFileName() {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const type = this.currentType || 'qr';
-        return `qrcode-${type}-${timestamp}.png`;
+  async shareQRCode() {
+    try {
+      const qrImage = this.qrcodeDiv.querySelector("img");
+      if (!qrImage) {
+        this.showToast("Please generate a QR code first");
+        return;
+      }
+
+      this.showLoading("Preparing to share...");
+
+      // Create high-quality QR code for sharing
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const ctx = canvas.getContext("2d");
+
+      // Set white background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw QR code
+      const image = new Image();
+      image.src = qrImage.src;
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+      });
+
+      // Calculate size to maintain aspect ratio
+      const size = Math.min(canvas.width, canvas.height) * 0.9;
+      const x = (canvas.width - size) / 2;
+      const y = (canvas.height - size) / 2;
+      ctx.drawImage(image, x, y, size, size);
+
+      // Get blob for sharing
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/png", 1.0)
+      );
+      const file = new File([blob], this.generateFileName(), {
+        type: "image/png",
+      });
+
+      this.hideLoading();
+
+      // Try different sharing methods
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
+        // Native sharing with file
+        await navigator.share({
+          files: [file],
+          title: "QR Code",
+          text: "Here's your QR Code",
+        });
+      } else if (navigator.share) {
+        // Native sharing without file
+        await navigator.share({
+          title: "QR Code",
+          text: "Here's your QR Code",
+          url: window.location.href,
+        });
+      } else {
+        // Fallback to custom share modal
+        this.showShareModal(file);
+      }
+    } catch (error) {
+      console.error("Share failed:", error);
+      this.hideLoading();
+      this.showToast("Sharing failed. Please try downloading instead.");
     }
+  }
 
-    showLoading(message) {
-        if (!this.loadingElement) {
-            this.loadingElement = document.createElement('div');
-            this.loadingElement.className = 'loading-overlay';
-            this.loadingElement.innerHTML = `
+  // Helper methods
+  generateFileName() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const type = this.currentType || "qr";
+    return `qrcode-${type}-${timestamp}.png`;
+  }
+
+  showLoading(message) {
+    if (!this.loadingElement) {
+      this.loadingElement = document.createElement("div");
+      this.loadingElement.className = "loading-overlay";
+      this.loadingElement.innerHTML = `
                 <div class="loading-spinner"></div>
                 <div class="loading-message"></div>
             `;
-            document.body.appendChild(this.loadingElement);
-        }
-        this.loadingElement.querySelector('.loading-message').textContent = message;
-        this.loadingElement.style.display = 'flex';
+      document.body.appendChild(this.loadingElement);
     }
+    this.loadingElement.querySelector(".loading-message").textContent = message;
+    this.loadingElement.style.display = "flex";
+  }
 
-    hideLoading() {
-        if (this.loadingElement) {
-            this.loadingElement.style.display = 'none';
-        }
+  hideLoading() {
+    if (this.loadingElement) {
+      this.loadingElement.style.display = "none";
     }
+  }
 
-    showToast(message, duration = 3000) {
-        if (!this.toastElement) {
-            this.toastElement = document.createElement('div');
-            this.toastElement.className = 'toast-message';
-            document.body.appendChild(this.toastElement);
-        }
-        this.toastElement.textContent = message;
-        this.toastElement.classList.add('show');
-        setTimeout(() => {
-            this.toastElement.classList.remove('show');
-        }, duration);
+  showToast(message, duration = 3000) {
+    if (!this.toastElement) {
+      this.toastElement = document.createElement("div");
+      this.toastElement.className = "toast-message";
+      document.body.appendChild(this.toastElement);
     }
+    this.toastElement.textContent = message;
+    this.toastElement.classList.add("show");
+    setTimeout(() => {
+      this.toastElement.classList.remove("show");
+    }, duration);
+  }
 
-    showShareModal(file) {
-        const modal = document.createElement('div');
-        modal.className = 'share-modal';
-        modal.innerHTML = `
+  showShareModal(file) {
+    const modal = document.createElement("div");
+    modal.className = "share-modal";
+    modal.innerHTML = `
             <div class="share-modal-content">
                 <h3>Share QR Code</h3>
                 <div class="share-options">
@@ -511,52 +650,52 @@ END:VCARD`;
                 <button class="close-modal">Close</button>
             </div>
         `;
-        document.body.appendChild(modal);
+    document.body.appendChild(modal);
 
-        // Handle modal actions
-        modal.querySelector('.close-modal').onclick = () => {
-            document.body.removeChild(modal);
-        };
+    // Handle modal actions
+    modal.querySelector(".close-modal").onclick = () => {
+      document.body.removeChild(modal);
+    };
 
-        modal.querySelector('[data-type="download"]').onclick = () => {
-            this.downloadQRCode();
-            document.body.removeChild(modal);
-        };
+    modal.querySelector('[data-type="download"]').onclick = () => {
+      this.downloadQRCode();
+      document.body.removeChild(modal);
+    };
 
-        modal.querySelector('[data-type="copy"]').onclick = async () => {
-            try {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': file })
-                ]);
-                this.showToast('QR code copied to clipboard!');
-            } catch (err) {
-                this.showToast('Failed to copy QR code');
-            }
-            document.body.removeChild(modal);
-        };
+    modal.querySelector('[data-type="copy"]').onclick = async () => {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": file }),
+        ]);
+        this.showToast("QR code copied to clipboard!");
+      } catch (err) {
+        this.showToast("Failed to copy QR code");
+      }
+      document.body.removeChild(modal);
+    };
 
-        modal.querySelector('[data-type="email"]').onclick = () => {
-            const mailTo = `mailto:?subject=QR Code&body=Here's your QR code.`;
-            window.location.href = mailTo;
-            document.body.removeChild(modal);
-        };
+    modal.querySelector('[data-type="email"]').onclick = () => {
+      const mailTo = `mailto:?subject=QR Code&body=Here's your QR code.`;
+      window.location.href = mailTo;
+      document.body.removeChild(modal);
+    };
+  }
+
+  addToHistory(item) {
+    this.history.unshift(item);
+    if (this.history.length > 5) {
+      this.history.pop();
     }
+    this.saveHistory();
+    this.displayHistory();
+  }
 
-    addToHistory(item) {
-        this.history.unshift(item);
-        if (this.history.length > 5) {
-            this.history.pop();
-        }
-        this.saveHistory();
-        this.displayHistory();
-    }
-
-    displayHistory() {
-        this.historyList.innerHTML = '';
-        this.history.forEach((item, index) => {
-            const historyItem = document.createElement('div');
-            historyItem.className = 'history-item';
-            historyItem.innerHTML = `
+  displayHistory() {
+    this.historyList.innerHTML = "";
+    this.history.forEach((item, index) => {
+      const historyItem = document.createElement("div");
+      historyItem.className = "history-item";
+      historyItem.innerHTML = `
                 <div class="history-item-content">
                     <i class="fas ${this.getIconForType(item.type)}"></i>
                     <span>${this.formatHistoryItemText(item)}</span>
@@ -571,110 +710,108 @@ END:VCARD`;
                     </button>
                 </div>
             `;
-            this.historyList.appendChild(historyItem);
-        });
+      this.historyList.appendChild(historyItem);
+    });
+  }
+
+  getIconForType(type) {
+    const icons = {
+      url: "fa-link",
+      email: "fa-envelope",
+      phone: "fa-phone",
+      sms: "fa-sms",
+      whatsapp: "fa-whatsapp",
+      wifi: "fa-wifi",
+      vcard: "fa-address-card",
+      text: "fa-align-left",
+    };
+    return icons[type] || "fa-qrcode";
+  }
+
+  formatHistoryItemText(item) {
+    switch (item.type) {
+      case "url":
+        return item.data.urlInput;
+      case "email":
+        return item.data.emailTo;
+      case "phone":
+      case "sms":
+      case "whatsapp":
+        return item.data[`${item.type}Number`] || item.data.phoneNumber;
+      case "wifi":
+        return item.data.wifiSsid;
+      case "vcard":
+        return item.data.vcardName;
+      case "text":
+        return item.data.textContent.substring(0, 30) + "...";
+      default:
+        return "QR Code";
     }
+  }
 
-    getIconForType(type) {
-        const icons = {
-            url: 'fa-link',
-            email: 'fa-envelope',
-            phone: 'fa-phone',
-            sms: 'fa-sms',
-            whatsapp: 'fa-whatsapp',
-            wifi: 'fa-wifi',
-            vcard: 'fa-address-card',
-            text: 'fa-align-left'
-        };
-        return icons[type] || 'fa-qrcode';
+  regenerateQRCode(index) {
+    const item = this.history[index];
+    this.changeQRType(item.type);
+
+    // Restore input values
+    setTimeout(() => {
+      Object.entries(item.data).forEach(([id, value]) => {
+        const input = document.getElementById(id);
+        if (input) input.value = value;
+      });
+
+      this.foregroundColor.value = item.colors.foreground;
+      this.backgroundColor.value = item.colors.background;
+      this.generateQRCode();
+    }, 100);
+  }
+
+  deleteHistoryItem(index) {
+    this.history.splice(index, 1);
+    this.saveHistory();
+    this.displayHistory();
+  }
+
+  clearHistory() {
+    this.history = [];
+    this.saveHistory();
+    this.displayHistory();
+  }
+
+  saveHistory() {
+    localStorage.setItem("qrHistory", JSON.stringify(this.history));
+  }
+
+  loadHistory() {
+    const savedHistory = localStorage.getItem("qrHistory");
+    if (savedHistory) {
+      this.history = JSON.parse(savedHistory);
+      this.displayHistory();
     }
+  }
 
-    formatHistoryItemText(item) {
-        switch (item.type) {
-            case 'url':
-                return item.data.urlInput;
-            case 'email':
-                return item.data.emailTo;
-            case 'phone':
-            case 'sms':
-            case 'whatsapp':
-                return item.data[`${item.type}Number`] || item.data.phoneNumber;
-            case 'wifi':
-                return item.data.wifiSsid;
-            case 'vcard':
-                return item.data.vcardName;
-            case 'text':
-                return item.data.textContent.substring(0, 30) + '...';
-            default:
-                return 'QR Code';
-        }
-    }
+  toggleDarkMode() {
+    const isDark = document.body.getAttribute("data-theme") === "dark";
+    document.body.setAttribute("data-theme", isDark ? "light" : "dark");
+    localStorage.setItem("darkMode", !isDark);
+  }
 
-    regenerateQRCode(index) {
-        const item = this.history[index];
-        this.changeQRType(item.type);
-        
-        // Restore input values
-        setTimeout(() => {
-            Object.entries(item.data).forEach(([id, value]) => {
-                const input = document.getElementById(id);
-                if (input) input.value = value;
-            });
+  loadThemePreference() {
+    const darkMode = localStorage.getItem("darkMode") === "true";
+    document.body.setAttribute("data-theme", darkMode ? "dark" : "light");
+  }
 
-            this.foregroundColor.value = item.colors.foreground;
-            this.backgroundColor.value = item.colors.background;
-            this.generateQRCode();
-        }, 100);
-    }
+  setupCameraScanner() {
+    const navButtons = document.querySelector(".nav-buttons");
+    this.cameraBtn = document.createElement("button");
+    this.cameraBtn.className = "camera-btn";
+    this.cameraBtn.innerHTML = '<i class="fas fa-camera"></i>';
+    this.cameraBtn.onclick = () => this.openCameraScanner();
+    navButtons.insertBefore(this.cameraBtn, navButtons.firstChild);
 
-    deleteHistoryItem(index) {
-        this.history.splice(index, 1);
-        this.saveHistory();
-        this.displayHistory();
-    }
-
-    clearHistory() {
-        this.history = [];
-        this.saveHistory();
-        this.displayHistory();
-    }
-
-    saveHistory() {
-        localStorage.setItem('qrHistory', JSON.stringify(this.history));
-    }
-
-    loadHistory() {
-        const savedHistory = localStorage.getItem('qrHistory');
-        if (savedHistory) {
-            this.history = JSON.parse(savedHistory);
-            this.displayHistory();
-        }
-    }
-
-    toggleDarkMode() {
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        localStorage.setItem('darkMode', !isDark);
-    }
-
-    loadThemePreference() {
-        const darkMode = localStorage.getItem('darkMode') === 'true';
-        document.body.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-    }
-
-    setupCameraScanner() {
-        // Add camera button to navbar
-        const navButtons = document.querySelector('.nav-buttons');
-        this.cameraBtn = document.createElement('button');
-        this.cameraBtn.className = 'camera-btn';
-        this.cameraBtn.innerHTML = '<i class="fas fa-camera"></i>';
-        this.cameraBtn.onclick = () => this.openCameraScanner();
-        navButtons.insertBefore(this.cameraBtn, navButtons.firstChild);
-
-        // Create scanner modal
-        this.scannerModal = document.createElement('div');
-        this.scannerModal.className = 'scanner-modal';
-        this.scannerModal.innerHTML = `
+    this.scannerModal = document.createElement("div");
+    this.scannerModal.className = "scanner-modal";
+    this.scannerModal.innerHTML = `
             <div class="scanner-content">
                 <div class="scanner-header">
                     <h3>Scan QR Code</h3>
@@ -684,96 +821,122 @@ END:VCARD`;
                     <video id="qr-video"></video>
                     <div class="scanning-overlay"></div>
                 </div>
+                <div class="scanner-actions">
+                    <button class="scanner-btn" id="galleryBtn">
+                        <i class="fas fa-image"></i> Choose from Gallery
+                    </button>
+                    <input type="file" id="galleryInput" accept="image/*" style="display: none">
+                </div>
                 <div class="scanner-message">Position QR code within frame</div>
             </div>
         `;
-        document.body.appendChild(this.scannerModal);
+    document.body.appendChild(this.scannerModal);
 
-        // Setup close button
-        this.scannerModal.querySelector('.close-scanner').onclick = () => this.closeCameraScanner();
-    }
+    // Setup gallery scanning
+    const galleryBtn = this.scannerModal.querySelector("#galleryBtn");
+    const galleryInput = this.scannerModal.querySelector("#galleryInput");
 
-    async openCameraScanner() {
+    galleryBtn.onclick = () => galleryInput.click();
+    galleryInput.onchange = async (e) => {
+      if (e.target.files && e.target.files[0]) {
         try {
-            // Load QR Scanner library dynamically
-            if (!window.QrScanner) {
-                await this.loadQrScannerLibrary();
-            }
-
-            const videoElement = document.getElementById('qr-video');
-            this.scannerModal.style.display = 'flex';
-
-            // Initialize QR Scanner
-            this.qrScanner = new QrScanner(
-                videoElement,
-                result => this.handleScanResult(result),
-                {
-                    highlightScanRegion: true,
-                    highlightCodeOutline: true,
-                }
-            );
-
-            await this.qrScanner.start();
+          const file = e.target.files[0];
+          const result = await QrScanner.scanImage(file);
+          this.handleScanResult(result);
         } catch (error) {
-            console.error('Camera access failed:', error);
-            this.showToast('Camera access denied. Please check your permissions.');
+          this.showToast("No QR code found in image");
         }
-    }
+      }
+    };
 
-    async loadQrScannerLibrary() {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/qr-scanner/qr-scanner.umd.min.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }
+    this.scannerModal.querySelector(".close-scanner").onclick = () =>
+      this.closeCameraScanner();
+  }
 
-    closeCameraScanner() {
-        if (this.qrScanner) {
-            this.qrScanner.stop();
-            this.qrScanner.destroy();
-            this.qrScanner = null;
+  async openCameraScanner() {
+    try {
+      // Load QR Scanner library dynamically
+      if (!window.QrScanner) {
+        await this.loadQrScannerLibrary();
+      }
+
+      const videoElement = document.getElementById("qr-video");
+      this.scannerModal.style.display = "flex";
+
+      // Initialize QR Scanner
+      this.qrScanner = new QrScanner(
+        videoElement,
+        (result) => this.handleScanResult(result),
+        {
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
         }
-        this.scannerModal.style.display = 'none';
+      );
+
+      await this.qrScanner.start();
+    } catch (error) {
+      console.error("Camera access failed:", error);
+      this.showToast("Camera access denied. Please check your permissions.");
     }
+  }
 
-    async handleScanResult(result) {
-        try {
-            // Stop scanning
-            this.qrScanner.stop();
-            
-            // Parse the result
-            let decodedText = result.data || result;
-            
-            // Check if it's a URL
-            if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
-                const confirmed = confirm(`Open this URL?\n${decodedText}`);
-                if (confirmed) {
-                    window.open(decodedText, '_blank');
-                }
-            } else if (decodedText.startsWith('mailto:')) {
-                window.location.href = decodedText;
-            } else if (decodedText.startsWith('tel:')) {
-                window.location.href = decodedText;
-            } else if (decodedText.startsWith('WIFI:')) {
-                alert('WiFi Network Details:\n' + decodedText.replace(/[;:]/g, '\n'));
-            } else {
-                // For other types of QR codes, show the content
-                alert('Scanned Content:\n' + decodedText);
-            }
+  async loadQrScannerLibrary() {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/qr-scanner/qr-scanner.umd.min.js";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
 
-            // Close scanner modal
-            this.closeCameraScanner();
-            
-            // Show success message
-            this.showToast('QR Code scanned successfully!');
-        } catch (error) {
-            console.error('Scan handling failed:', error);
-            this.showToast('Failed to process QR code');
+  closeCameraScanner() {
+    if (this.qrScanner) {
+      this.qrScanner.stop();
+      this.qrScanner.destroy();
+      this.qrScanner = null;
+    }
+    this.scannerModal.style.display = "none";
+  }
+
+  async handleScanResult(result) {
+    try {
+      // Stop scanning
+      this.qrScanner.stop();
+
+      // Parse the result
+      let decodedText = result.data || result;
+
+      // Check if it's a URL
+      if (
+        decodedText.startsWith("http://") ||
+        decodedText.startsWith("https://")
+      ) {
+        const confirmed = confirm(`Open this URL?\n${decodedText}`);
+        if (confirmed) {
+          window.open(decodedText, "_blank");
         }
+      } else if (decodedText.startsWith("mailto:")) {
+        window.location.href = decodedText;
+      } else if (decodedText.startsWith("tel:")) {
+        window.location.href = decodedText;
+      } else if (decodedText.startsWith("WIFI:")) {
+        alert("WiFi Network Details:\n" + decodedText.replace(/[;:]/g, "\n"));
+      } else {
+        // For other types of QR codes, show the content
+        alert("Scanned Content:\n" + decodedText);
+      }
+
+      // Close scanner modal
+      this.closeCameraScanner();
+
+      // Show success message
+      this.showToast("QR Code scanned successfully!");
+    } catch (error) {
+      console.error("Scan handling failed:", error);
+      this.showToast("Failed to process QR code");
     }
+  }
 }
 
 const qrGenerator = new QRCodeGenerator();
