@@ -1,10 +1,6 @@
 class QRCodeGenerator {
   constructor() {
-    // Check for desktop mode first
-    if (!this.isDesktopMode()) {
-      this.showDesktopModePrompt();
-      return;
-    }
+   
 
     this.initializeElements();
     this.setupEventListeners();
@@ -13,56 +9,11 @@ class QRCodeGenerator {
     this.currentType = "url";
     this.setupQRTypes();
     this.setupCameraScanner();
-    this.setupSocialMediaDownloader();
   }
 
-  isDesktopMode() {
-    // Check if the device is mobile and not in desktop mode
-    const isMobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
-    const viewportWidth = window.innerWidth;
-    const isDesktopMode = viewportWidth >= 1024; // Common desktop breakpoint
+ 
 
-    return !isMobile || isDesktopMode;
-  }
 
-  showDesktopModePrompt() {
-    // Create and show the desktop mode prompt
-    const overlay = document.createElement("div");
-    overlay.className = "desktop-mode-overlay";
-
-    const content = document.createElement("div");
-    content.className = "desktop-mode-content";
-
-    content.innerHTML = `
-            <div class="desktop-mode-icon">
-                <i class="fas fa-desktop"></i>
-            </div>
-            <h2>Desktop Mode Required</h2>
-            <p>Please switch to desktop mode in your browser settings to use this website.</p>
-            <div class="instructions">
-                <h3>How to enable desktop mode:</h3>
-                <div class="browser-instructions">
-                    <h4>Chrome:</h4>
-                    <ol>
-                        <li>Click the three dots (⋮)</li>
-                        <li>Check "Desktop site"</li>
-                    </ol>
-                    <h4>Safari:</h4>
-                    <ol>
-                        <li>Tap "aA" in the address bar</li>
-                        <li>Select "Request Desktop Website"</li>
-                    </ol>
-                </div>
-            </div>
-        `;
-
-    overlay.appendChild(content);
-    document.body.appendChild(overlay);
-    document.body.style.overflow = "hidden"; // Prevent scrolling
-  }
 
   initializeElements() {
     this.inputFields = document.getElementById("inputFields");
@@ -937,135 +888,6 @@ END:VCARD`;
       console.error("Scan handling failed:", error);
       this.showToast("Failed to process QR code");
     }
-  }
-
-  async setupSocialMediaDownloader() {
-    const Y2MATE_API = 'https://yt2mate.tools/api/convert';
-    
-    async function getVideoInfo(url) {
-        try {
-            const response = await fetch(Y2MATE_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    url: url,
-                    format: 'mp4'
-                })
-            });
-
-            const data = await response.json();
-            return {
-                title: data.title,
-                thumbnail: data.thumbnail,
-                formats: data.formats.map(format => ({
-                    quality: format.quality,
-                    size: format.size,
-                    url: format.url
-                }))
-            };
-        } catch (error) {
-            throw new Error('Failed to fetch video info');
-        }
-    }
-
-    async function startDownload(url, fileName) {
-        try {
-            const response = await fetch(url);
-            const total = parseInt(response.headers.get('content-length'), 10);
-            let loaded = 0;
-
-            const reader = response.body.getReader();
-            const chunks = [];
-
-            while(true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                
-                chunks.push(value);
-                loaded += value.length;
-                
-                const progress = (loaded / total) * 100;
-                this.updateDownloadProgress(progress);
-            }
-
-            const blob = new Blob(chunks, {type: 'video/mp4'});
-            const downloadUrl = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(downloadUrl);
-
-            this.showDownloadComplete(fileName);
-        } catch (error) {
-            this.showToast('Download failed. Please try again.');
-        }
-    }
-
-    // Add event listener for download button
-    document.getElementById('downloadVideo').addEventListener('click', async () => {
-        const url = document.getElementById('videoUrl').value;
-        if (!url) {
-            this.showToast('Please enter a valid URL');
-            return;
-        }
-
-        try {
-            this.showLoading('Fetching video info...');
-            const videoInfo = await getVideoInfo(url);
-            
-            // Show quality options
-            const qualityContainer = document.querySelector('.download-options');
-            qualityContainer.innerHTML = videoInfo.formats.map(format => `
-                <button class="quality-option" data-url="${format.url}" data-quality="${format.quality}">
-                    ${format.quality} (${format.size})
-                </button>
-            `).join('');
-
-            // Add click handlers for quality options
-            qualityContainer.querySelectorAll('.quality-option').forEach(button => {
-                button.addEventListener('click', () => {
-                    const fileName = `${videoInfo.title}-${button.dataset.quality}.mp4`;
-                    startDownload(button.dataset.url, fileName);
-                });
-            });
-
-            this.hideLoading();
-        } catch (error) {
-            this.showToast('Failed to fetch video information');
-            this.hideLoading();
-        }
-    });
-  }
-
-  updateDownloadProgress(progress) {
-    const progressFill = document.querySelector('.progress-fill');
-    const progressText = document.querySelector('.progress-text');
-    progressFill.style.width = `${progress}%`;
-    progressText.textContent = `Downloading: ${Math.round(progress)}%`;
-  }
-
-  showDownloadComplete(fileName) {
-    const downloadComplete = document.createElement('div');
-    downloadComplete.className = 'download-complete';
-    downloadComplete.innerHTML = `
-        <div class="download-complete-content">
-            <i class="fas fa-check-circle"></i>
-            <h3>Download Complete!</h3>
-            <p>Saved as: ${fileName}</p>
-            <button class="view-video-btn">View in Video App</button>
-        </div>
-    `;
-    document.body.appendChild(downloadComplete);
-
-    setTimeout(() => {
-      downloadComplete.remove();
-    }, 3000);
   }
 }
 
