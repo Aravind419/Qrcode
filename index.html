@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <h1>QR Code Generator </h1>
+            </div>
+            <div class="nav-buttons">
+                <button id="darkModeToggle" class="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="sign-up-btn">Sign Up Free</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="qr-types-sidebar">
+            <h3>QR Code Types</h3>
+            <ul class="qr-type-list">
+                <li class="active" data-type="url">
+                    <i class="fas fa-link"></i> URL
+                </li>
+                <li data-type="email">
+                    <i class="fas fa-envelope"></i> Email
+                </li>
+                <li data-type="phone">
+                    <i class="fas fa-phone"></i> Phone
+                </li>
+                <li data-type="sms">
+                    <i class="fas fa-sms"></i> SMS
+                </li>
+                <li data-type="whatsapp">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </li>
+                <li data-type="wifi">
+                    <i class="fas fa-wifi"></i> Wi-Fi
+                </li>
+                <li data-type="vcard">
+                    <i class="fas fa-address-card"></i> vCard
+                </li>
+                <li data-type="text">
+                    <i class="fas fa-align-left"></i> Text
+                </li>
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <div class="qr-input-section">
+                <div id="inputFields" class="input-fields">
+                    <!-- Dynamic input fields will be inserted here -->
+                </div>
+
+                <div class="qr-customization">
+                    <h3>Customize Design</h3>
+                    <div class="color-options">
+                        <div class="color-picker-group">
+                            <label>Foreground Color</label>
+                            <input type="color" id="foregroundColor" value="#000000">
+                        </div>
+                        <div class="color-picker-group">
+                            <label>Background Color</label>
+                            <input type="color" id="backgroundColor" value="#FFFFFF">
+                        </div>
+                    </div>
+                    
+                    <div class="logo-upload">
+                        <label>Add Logo (Optional)</label>
+                        <input type="file" id="logoUpload" accept="image/*">
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="generate-btn">
+                    <i class="fas fa-qrcode"></i> Generate QR Code
+                </button>
+            </div>
+
+            <div class="qr-preview">
+                <div id="qrcode" class="qr-code-container"></div>
+                <div class="qr-actions">
+                    <button id="downloadBtn" class="action-btn">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <button id="shareBtn" class="action-btn">
+                        <i class="fas fa-share-alt"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="historyPanel" class="history-panel">
+        <div class="history-header">
+            <h3>Recent QR Codes</h3>
+            <button id="clearHistory" class="clear-btn">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
