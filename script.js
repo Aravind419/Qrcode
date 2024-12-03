@@ -254,49 +254,75 @@ END:VCARD`;
                 return;
             }
 
-            // Show loading indicator
             this.showLoading('Preparing download...');
 
-            // Create a high-quality version of the QR code
+            // Create canvas with proper sizing for mobile
             const canvas = document.createElement('canvas');
-            canvas.width = 1024;  // Larger size for better quality
-            canvas.height = 1024;
+            const size = Math.min(window.innerWidth * 0.8, 1024); // Responsive size
+            canvas.width = size;
+            canvas.height = size;
             const ctx = canvas.getContext('2d');
 
             // Set white background
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw QR code
+            // Load image with proper error handling
             const image = new Image();
-            image.src = qrImage.src;
+            image.crossOrigin = 'anonymous'; // Handle CORS issues
+            
             await new Promise((resolve, reject) => {
                 image.onload = resolve;
                 image.onerror = reject;
+                image.src = qrImage.src;
             });
 
-            // Calculate size to maintain aspect ratio
-            const size = Math.min(canvas.width, canvas.height) * 0.9;
-            const x = (canvas.width - size) / 2;
-            const y = (canvas.height - size) / 2;
-            ctx.drawImage(image, x, y, size, size);
+            // Draw image with padding
+            const padding = size * 0.1;
+            const imageSize = size - (padding * 2);
+            ctx.drawImage(image, padding, padding, imageSize, imageSize);
 
-            // Convert to blob
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-            const fileName = this.generateFileName();
+            // For mobile devices
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                try {
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                    const fileName = `QRCode_${Date.now()}.png`;
 
-            // Create download link
-            const downloadUrl = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(downloadUrl);
-
-            this.hideLoading();
-            this.showToast('QR code downloaded successfully!');
+                    // Try the download attribute first
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = fileName;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    
+                    // Trigger click with a slight delay for mobile
+                    setTimeout(() => {
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(downloadUrl);
+                        this.hideLoading();
+                        this.showToast('Long press the image to save');
+                    }, 100);
+                } catch (error) {
+                    console.error('Mobile download failed:', error);
+                    this.showToast('Please long press the QR code to save');
+                }
+            } else {
+                // Desktop download
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = this.generateFileName();
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.hideLoading();
+                    this.showToast('QR code downloaded successfully!');
+                }, 'image/png', 1.0);
+            }
         } catch (error) {
             console.error('Download failed:', error);
             this.hideLoading();
