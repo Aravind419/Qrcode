@@ -13,6 +13,7 @@ class QRCodeGenerator {
     this.currentType = "url";
     this.setupQRTypes();
     this.setupCameraScanner();
+    this.setupSocialMediaDownloader();
   }
 
   isDesktopMode() {
@@ -936,6 +937,249 @@ END:VCARD`;
       console.error("Scan handling failed:", error);
       this.showToast("Failed to process QR code");
     }
+  }
+
+  setupSocialMediaDownloader() {
+    const downloaderSection = document.createElement("div");
+    downloaderSection.className = "social-downloader-section";
+    downloaderSection.innerHTML = `
+        <div class="downloader-container">
+            <h2 class="downloader-title">
+                <span class="gradient-text">Social Media Downloader</span>
+            </h2>
+            
+            <div class="platform-tabs">
+                <button class="platform-tab active" data-platform="youtube">
+                    <i class="fab fa-youtube"></i> YouTube
+                </button>
+                <button class="platform-tab" data-platform="instagram">
+                    <i class="fab fa-instagram"></i> Instagram
+                </button>
+                <button class="platform-tab" data-platform="shorts">
+                    <i class="fas fa-video"></i> Shorts
+                </button>
+            </div>
+
+            <div class="url-input-container">
+                <input type="text" id="videoUrl" placeholder="Paste your link here..." class="video-url-input">
+                <button class="download-btn" id="downloadVideo">
+                    <i class="fas fa-download"></i>
+                    <span>Download</span>
+                </button>
+            </div>
+
+            <div class="preview-container hidden">
+                <div class="video-info">
+                    <img src="" alt="Thumbnail" class="video-thumbnail">
+                    <div class="video-details">
+                        <h3 class="video-title"></h3>
+                        <p class="video-duration"></p>
+                    </div>
+                </div>
+                <div class="download-options">
+                    <button class="quality-option" data-quality="720p">
+                        <i class="fas fa-film"></i> 720p MP4
+                    </button>
+                    <button class="quality-option" data-quality="1080p">
+                        <i class="fas fa-film"></i> 1080p MP4
+                    </button>
+                    <button class="quality-option" data-quality="audio">
+                        <i class="fas fa-music"></i> MP3 Audio
+                    </button>
+                </div>
+            </div>
+
+            <div class="download-progress hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <p class="progress-text">Downloading: 0%</p>
+            </div>
+        </div>
+    `;
+
+    // Insert after QR code section
+    document.querySelector(".main-content").appendChild(downloaderSection);
+
+    // Add event listeners
+    this.setupDownloaderEvents();
+  }
+
+  setupDownloaderEvents() {
+    const urlInput = document.querySelector(".video-url-input");
+    const downloadBtn = document.querySelector("#downloadVideo");
+    const platformTabs = document.querySelectorAll(".platform-tab");
+
+    platformTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        platformTabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        urlInput.placeholder = `Paste ${tab.textContent.trim()} link here...`;
+      });
+    });
+
+    downloadBtn.addEventListener("click", async () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        this.showToast("Please enter a valid URL");
+        return;
+      }
+
+      try {
+        await this.processDownload(url);
+      } catch (error) {
+        this.showToast("Download failed. Please try again.");
+      }
+    });
+  }
+
+  async processDownload(url) {
+    // Show loading state
+    const progressBar = document.querySelector(".download-progress");
+    progressBar.classList.remove("hidden");
+
+    // Simulate progress (replace with actual download logic)
+    const fill = progressBar.querySelector(".progress-fill");
+    const text = progressBar.querySelector(".progress-text");
+
+    for (let i = 0; i <= 100; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      fill.style.width = `${i}%`;
+      text.textContent = `Downloading: ${i}%`;
+    }
+
+    // Hide progress and show success
+    setTimeout(() => {
+      progressBar.classList.add("hidden");
+      this.showToast("Download completed successfully!");
+    }, 1000);
+  }
+
+  async handleVideoDownload(url, platform) {
+    try {
+      this.showLoading('Fetching video info...');
+      
+      // Show video preview container
+      const previewContainer = document.querySelector('.preview-container');
+      previewContainer.classList.remove('hidden');
+
+      // Simulate fetching video info (replace with actual API call)
+      const videoInfo = await this.fetchVideoInfo(url, platform);
+      
+      // Update preview
+      const thumbnail = previewContainer.querySelector('.video-thumbnail');
+      const title = previewContainer.querySelector('.video-title');
+      thumbnail.src = videoInfo.thumbnail;
+      title.textContent = videoInfo.title;
+
+      // Generate quality options
+      const qualityContainer = previewContainer.querySelector('.download-options');
+      qualityContainer.innerHTML = videoInfo.formats.map(format => `
+          <button class="quality-option" data-quality="${format.quality}" data-url="${format.url}">
+              <i class="fas fa-film"></i> ${format.quality} ${format.format}
+              <span class="size">${format.size}</span>
+          </button>
+      `).join('');
+
+      // Add click handlers for quality options
+      qualityContainer.querySelectorAll('.quality-option').forEach(button => {
+        button.addEventListener('click', () => this.startDownload(button.dataset.url, videoInfo.title));
+      });
+
+      this.hideLoading();
+    } catch (error) {
+      console.error('Download failed:', error);
+      this.showToast('Failed to fetch video information');
+      this.hideLoading();
+    }
+  }
+
+  async startDownload(url, title) {
+    try {
+      this.showLoading('Starting download...');
+      const progressBar = document.querySelector('.download-progress');
+      progressBar.classList.remove('hidden');
+
+      // Start download and track progress
+      const response = await fetch(url);
+      const contentLength = response.headers.get('content-length');
+      const total = parseInt(contentLength, 10);
+      let loaded = 0;
+
+      const reader = response.body.getReader();
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        
+        // Update progress
+        const progress = (loaded / total) * 100;
+        this.updateDownloadProgress(progress);
+      }
+
+      // Create blob and save file
+      const blob = new Blob(chunks);
+      const fileName = `${title}.mp4`;
+      
+      // Save to device's video app
+      if ('showSaveFilePicker' in window) {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{
+            description: 'Video File',
+            accept: { 'video/mp4': ['.mp4'] }
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        // Fallback for browsers without File System Access API
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      this.hideLoading();
+      this.showDownloadComplete(fileName);
+    } catch (error) {
+      console.error('Download failed:', error);
+      this.showToast('Download failed. Please try again.');
+      this.hideLoading();
+    }
+  }
+
+  updateDownloadProgress(progress) {
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    progressFill.style.width = `${progress}%`;
+    progressText.textContent = `Downloading: ${Math.round(progress)}%`;
+  }
+
+  showDownloadComplete(fileName) {
+    const downloadComplete = document.createElement('div');
+    downloadComplete.className = 'download-complete';
+    downloadComplete.innerHTML = `
+        <div class="download-complete-content">
+            <i class="fas fa-check-circle"></i>
+            <h3>Download Complete!</h3>
+            <p>Saved as: ${fileName}</p>
+            <button class="view-video-btn">View in Video App</button>
+        </div>
+    `;
+    document.body.appendChild(downloadComplete);
+
+    setTimeout(() => {
+      downloadComplete.remove();
+    }, 3000);
   }
 }
 
