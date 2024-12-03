@@ -1,6 +1,10 @@
 class QRCodeGenerator {
   constructor() {
-   
+    // Check for desktop mode first
+    if (!this.isDesktopMode()) {
+        this.showDesktopModePrompt();
+        return;
+    }
 
     this.initializeElements();
     this.setupEventListeners();
